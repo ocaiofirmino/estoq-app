@@ -1,0 +1,10 @@
+.git/
+.legacy-sites/
+.openai/
+.sites-runtime/
+.env*
+data/
+*.sqlite*
+node_modules/
+tests/
+__pycache__/

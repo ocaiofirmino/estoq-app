@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "products": [],
+  "stores": [],
+  "visits": [],
+  "settings": {
+    "targetDays": 30
+  },
+  "source": {
+    "type": "empty"
+  },
+  "audit": [],
+  "imports": []
+}

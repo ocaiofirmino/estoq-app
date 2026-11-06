@@ -1,0 +1,15 @@
+@keyframes appear{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes roll-up{from{opacity:.35;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes roll-down{from{opacity:.35;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes breathe{50%{opacity:.45}}
+[data-number]{animation:roll-up 200ms var(--ease) both}
+@keyframes sheet-rise{from{opacity:0;transform:translateY(100%)}to{opacity:1;transform:translateY(0)}}
+.menu-sheet[open]{animation:sheet-rise 280ms var(--ease) both}
+@keyframes spin{to{transform:rotate(360deg)}}
+.personal-space>div:first-child,.page-heading{animation:appear 240ms var(--ease) both}
+.results-panel,.collection,.laboratory-grid,.report-sheet,.settings-grid,.count-product{animation:appear 240ms var(--ease) both}
+.results-panel{animation-delay:60ms}.visit-row[open] .expansion-inner{animation:appear 220ms var(--ease) both}
+.quantity-up .quantity-field input{animation:roll-up 200ms var(--ease)}.quantity-down .quantity-field input{animation:roll-down 200ms var(--ease)}
+.save-success{animation:appear 240ms var(--ease) both}.count-feedback .badge{animation:appear 220ms var(--ease) both}
+.nav-link,.surface,.store-card{transition:background-color 180ms ease,border-color 180ms ease}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}

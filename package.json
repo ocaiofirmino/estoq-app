@@ -1,0 +1,21 @@
+{
+  "name": "estoq",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env.local scripts/local-server.mjs",
+    "start": "node --env-file-if-exists=.env.local scripts/local-server.mjs",
+    "build": "node scripts/build-static.mjs",
+    "db:setup": "node --env-file-if-exists=.env.local scripts/setup-database.mjs",
+    "migrate:brand": "node --env-file-if-exists=.env.local scripts/migrate-estoq.mjs",
+    "import:spreadsheet": "node --env-file-if-exists=.env.local scripts/import-update.mjs",
+    "test": "node --import ./tests/helpers/auth-env.mjs --test --test-isolation=none tests/*.test.mjs"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.2"
+  }
+}
