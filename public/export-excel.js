@@ -1,4 +1,4 @@
-import {selectData,recommendation,comparisonView,groupProductStores} from './domain.js';
+import {selectData,selectReport,recommendation,comparisonView,groupProductStores} from './domain.js';
 
 const sum=(list,key)=>list.reduce((n,item)=>n+(item[key]??0),0);
 const asDate=value=>value?new Date(value+'T00:00:00Z'):null;
@@ -17,12 +17,12 @@ export function dashboardSheets(data,filters={},generatedAt=new Date()){
     ['Período',filters.month||'Todo o histórico','Visitas e variações observadas no período.'],
     ['Loja',scope,'Todas as lojas fazem parte da rede. O filtro permite consultar uma loja individualmente.'],
     ['Laboratório',filters.laboratory||'Todos os laboratórios','Filtro aplicado a todas as abas.'],
-    ['Estoque contado',s.counted?s.totalStock:null,'Última contagem física até o fim do período. As PFs podem ter sido conferidas em datas diferentes.'],
+    ['Estoque contado',s.counted?s.totalStock:null,filters.month?'Última contagem física de cada produto e PF dentro do mês selecionado. Contagens de outros meses não entram neste estoque.':'Última contagem física conhecida de cada produto e PF no histórico.'],
     ['Saídas estimadas',s.outgoing,'Soma das reduções entre contagens. Em branco quando não há contagem anterior.'],
     ['Possível reposição',s.possibleRestock,'Soma dos aumentos entre contagens. Não confirma quantidades efetivamente recebidas.'],
     ['Lojas na seleção',s.stores.length,'Total de lojas abrangidas pelo filtro.'],['Lojas visitadas',s.visitedStores,'Lojas com contagem registrada no período.'],
     ['Lojas sem visita no período',s.stores.length-s.visitedStores,'Não significa estoque igual a zero.'],['Visitas no período',s.visits.length,'Visitas que incluem produtos selecionados.'],
-    ['Produtos cadastrados',s.products.length,'Quantidade de produtos na seleção.'],['Combinações produto e loja conferidas',s.counted,'Combinações com contagem conhecida até o fim do período.'],
+    ['Produtos cadastrados',s.products.length,'Quantidade de produtos na seleção.'],['Combinações produto e loja conferidas',s.counted,filters.month?'Combinações com contagem física no mês selecionado.':'Combinações com contagem conhecida no histórico.'],
     ['Pontos sem estoque',s.zeroStock,'Produto e PF cuja última contagem é zero.'],
     ['Dia zero','A primeira contagem','Serve como referência, sem estimar reposição ou saída.'],['Campos vazios','Não conferido ou sem referência','Zero continua sendo uma quantidade conhecida.'],
     ['Como ler as variações','Aumento = possível reposição; redução = saída estimada','Reposições e saídas no mesmo intervalo podem se compensar. As estimativas não comprovam compras ou vendas.'],
@@ -32,7 +32,7 @@ export function dashboardSheets(data,filters={},generatedAt=new Date()){
   const grouped={name:'Produtos por PF',widths:[48,18,17,20,90,75,18,18,20,22],rows:[['Produto','Laboratório','Código','Estoque total','PFs com estoque e quantidades','PFs sem estoque','PFs com estoque','PFs conferidas','Saída estimada','Possível reposição']]};
   for(const row of groupProductStores(s))grouped.rows.push([row.product.name,row.product.laboratory,row.product.code,row.stock,row.withStock.map(b=>`${b.store.id}: ${b.stock} un.`).join(' / '),row.withoutStock.map(b=>b.store.id).join(' / '),row.withStock.length,row.counted,row.outgoing,row.possibleRestock]);
   const storeSheet={name:'Lojas',rows:[['Código da loja','Loja','Cidade','Última visita no período','Última contagem conhecida','Produtos conferidos','Produtos cadastrados','Estoque contado','Possível reposição','Saída estimada','Pontos sem estoque','Situação']]};
-  for(const store of s.stores){const b=s.balances.filter(b=>b.storeId===store.id),m=byStore.get(store.id)||[],v=s.visits.filter(v=>v.storeId===store.id);const last=b.map(b=>b.countDate).sort().at(-1);storeSheet.rows.push([store.id,store.name,store.city,asDate(v.at(-1)?.date),asDate(last),b.length,s.products.length,b.length?sum(b,'stock'):null,observed(m,'possibleRestock'),observed(m,'outgoing'),b.filter(b=>b.stock===0).length,!b.length?'Sem contagem':!v.length?'Sem visita no período':b.length<s.products.length?'Contagem parcial':'Conferida']);}
+  for(const store of s.stores){const b=s.balances.filter(b=>b.storeId===store.id),m=byStore.get(store.id)||[],v=s.visits.filter(v=>v.storeId===store.id);const last=b.map(b=>b.countDate).sort().at(-1);storeSheet.rows.push([store.id,store.name,store.city,asDate(v.at(-1)?.date),asDate(last),b.length,s.products.length,b.length?sum(b,'stock'):null,observed(m,'possibleRestock'),observed(m,'outgoing'),b.filter(b=>b.stock===0).length,!b.length?(filters.month?'Não conferida no mês selecionado':'Sem contagem'):!v.length?'Sem visita no período':b.length<s.products.length?'Contagem parcial':'Conferida']);}
   const stockSheet={name:'Estoque por produto',widths:[16,24,18,16,48,20,19,23,20,22,22,23,21,26],rows:[['Código da loja','Loja','Laboratório','Código do produto','Produto','Última contagem','Estoque contado','Possível reposição no período','Saída estimada no período','Ritmo observado (un./dia)','Cobertura estimada (dias)','Compra sugerida (un.)','Meta de cobertura (dias)','Última leitura']]};
   for(const store of s.stores)for(const p of s.products){const key=`${store.id}:${p.id}`,b=balances.get(key),m=byPair.get(key)||[],r=b?recommendation(b,data.settings.targetDays):null;stockSheet.rows.push([store.id,store.name,p.laboratory,p.code,p.name,asDate(b?.countDate),b?.stock??null,observed(m,'possibleRestock'),observed(m,'outgoing'),b?.rate??null,r?.coverage??null,r?.units??null,data.settings.targetDays,b?reading[b.lastStatus]:'Não conferido']);}
   const movements={name:'Movimentações',widths:[18,16,24,18,16,48,20,19,20,22,20,18,23,26],rows:[['Data da visita','Código da loja','Loja','Laboratório','Código do produto','Produto','Contagem anterior em','Estoque anterior','Contagem atual','Possível reposição','Saída estimada','Variação','Intervalo (dias)','Leitura automática']]};
@@ -40,6 +40,40 @@ export function dashboardSheets(data,filters={},generatedAt=new Date()){
   const visits={name:'Visitas',widths:[18,16,24,22,20,23,20,65,22,22],rows:[['Data','Código da loja','Loja','Produtos conferidos','Estoque da visita','Possível reposição','Saída estimada','Observações','Registrada por','Atualizada por']]};
   for(const v of s.visits){const m=byVisit.get(v.id)||[],counts=m.filter(m=>m.stock!==null);visits.rows.push([asDate(v.date),v.storeId,stores.get(v.storeId).name,counts.length,counts.length?sum(counts,'stock'):null,observed(m,'possibleRestock'),observed(m,'outgoing'),v.notes,v.createdBy||'Importada da planilha',v.updatedBy||null]);}
   return [overview,laboratories,grouped,storeSheet,stockSheet,movements,visits];
+}
+
+export function reportSheets(data,filters={},generatedAt=new Date()){
+  const report=selectReport(data,filters);
+  const scope=filters.storeId?data.stores.find(store=>store.id===filters.storeId)?.name||filters.storeId:'Toda a rede';
+  const context={name:'Contexto',widths:[39,42,100],rows:[
+    ['Indicador','Valor','Contexto'],
+    ['Sistema','Estoq','Relatório baseado nas contagens físicas registradas nas visitas.'],
+    ['Gerado em',generatedAt.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}),'Horário de Brasília.'],
+    ['Período',filters.month||'Total acumulado por mês','Meses em ordem cronológica, do mais antigo para o mais recente.'],
+    ['Loja',scope,'Filtro aplicado a todas as abas.'],
+    ['Laboratório',filters.laboratory||'Todos os laboratórios','Filtro aplicado a todas as abas.'],
+    ['Soma das contagens mensais',report.counted?report.totalStock:null,'Cada mês usa a última contagem de cada produto e PF realizada naquele mês. O acumulado soma esses resultados mensais.'],
+    ['Conferências de lojas por mês',report.storeMonths,'Soma das lojas conferidas em cada mês. Uma loja conferida em dois meses conta duas vezes.'],
+    ['Lojas distintas conferidas',report.visitedStores,'Cada loja é contada uma vez em todo o período selecionado.'],
+    ['Produtos × lojas × meses conferidos',report.counted,'Uma combinação produto e loja pode ser conferida novamente em outro mês.'],
+    ['Saída estimada',report.outgoing,'Soma das reduções entre contagens. A comparação pode usar uma referência de um mês anterior.'],
+    ['Possível reposição',report.possibleRestock,'Soma dos aumentos entre contagens. Não confirma compras nem recebimentos.'],
+    ['Lojas não conferidas','Demais lojas não conferidas no mês selecionado','Contagens antigas não são reaproveitadas. Campo vazio significa ausência de contagem, e zero significa ausência de estoque confirmada.'],
+    ['Leitura do acumulado','Soma das contagens mensais','São observações em meses diferentes, não uma posição única de estoque atual.'],
+  ]};
+  const monthly={name:'Resumo mensal',widths:[18,25,25,29,25,23,23],rows:[
+    ['Mês','Lojas conferidas no mês','Lojas na seleção','Lojas não conferidas no mês','Estoque contado no mês','Saída estimada','Possível reposição'],
+    ...report.periods.map(s=>[s.month,s.visitedStores,s.stores.length,s.stores.length-s.visitedStores,s.counted?s.totalStock:null,s.outgoing,s.possibleRestock]),
+    ['Total acumulado',report.storeMonths,null,null,report.counted?report.totalStock:null,report.outgoing,report.possibleRestock],
+  ]};
+  // Abas fixas com coluna Mês preservam a separação mesmo em históricos longos.
+  const templates=dashboardSheets(data,filters,generatedAt).slice(1);
+  const details=templates.map(sheet=>({...sheet,widths:[18,...(sheet.widths||sheet.rows[0].map(()=>24))],rows:[['Mês',...sheet.rows[0]]]}));
+  for(const period of report.periods){
+    const sheets=dashboardSheets(data,{...filters,month:period.month},generatedAt).slice(1);
+    for(let i=0;i<sheets.length;i++)details[i].rows.push(...sheets[i].rows.slice(1).map(row=>[period.month,...row]));
+  }
+  return [context,monthly,...details];
 }
 
 export function comparisonSheets(data,selection){

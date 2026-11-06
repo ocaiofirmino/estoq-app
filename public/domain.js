@@ -37,17 +37,30 @@ export function selectData(data,{month='',storeId='',laboratory=''}={}) {
   const products=data.products.filter(p=>!laboratory||p.laboratory===laboratory);
   const storeIds=new Set(stores.map(s=>s.id)),productIds=new Set(products.map(p=>p.id));
   const matches=line=>storeIds.has(line.storeId)&&productIds.has(line.productId);
-  const balances=derived.balances.filter(matches);
+  const balances=derived.balances.filter(b=>matches(b)&&(!month||b.countDate.startsWith(month)));
   const movements=derived.movements.filter(m=>matches(m)&&(!month||m.date.startsWith(month)));
   const visits=orderedVisits(data).filter(v=>storeIds.has(v.storeId)&&(!month||v.date.startsWith(month))&&v.items.some(i=>productIds.has(i.productId)));
   const known=movements.filter(m=>m.comparable);
-  return {endDate:end,stores,products,balances,movements,visits,
+  return {month,endDate:end,stores,products,balances,movements,visits,
     totalStock:balances.reduce((n,b)=>n+b.stock,0),
     outgoing:known.length?known.reduce((n,m)=>n+m.outgoing,0):null,
     possibleRestock:known.length?known.reduce((n,m)=>n+m.possibleRestock,0):null,
     zeroStock:balances.filter(b=>b.stock===0).length,counted:balances.length,
     visitedStores:new Set(visits.filter(v=>v.items.some(i=>productIds.has(i.productId)&&i.stock!==null&&i.stock!==undefined)).map(v=>v.storeId)).size,
     comparable:known.length,unknown:movements.filter(m=>m.stock!==null&&!m.comparable).length};
+}
+
+export function selectReport(data,filters={}) {
+  const months=filters.month?[filters.month]:[...new Set(selectData(data,filters).visits.map(v=>v.date.slice(0,7)))].sort();
+  const periods=months.map(month=>selectData(data,{...filters,month}));
+  const sum=key=>periods.reduce((total,period)=>total+(period[key]??0),0);
+  const comparable=sum('comparable');
+  return {periods,totalStock:sum('totalStock'),counted:sum('counted'),
+    storeMonths:sum('visitedStores'),
+    visitedStores:new Set(periods.flatMap(period=>period.balances.map(b=>b.storeId))).size,
+    outgoing:comparable?sum('outgoing'):null,
+    possibleRestock:comparable?sum('possibleRestock'):null,
+    comparable,zeroStock:sum('zeroStock')};
 }
 
 export function recommendation(balance,targetDays=30) {

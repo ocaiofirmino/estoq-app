@@ -59,6 +59,12 @@ Essas variações são estimativas a partir das conferências físicas. Uma qued
 
 **Zero significa que o produto foi conferido e não havia unidades. Um produto não conferido continua sem contagem.** Essa diferença é mantida nas consultas e nos relatórios.
 
+### Relatórios por mês
+
+Ao selecionar um mês, o relatório considera somente as contagens realizadas nele. Para cada produto e loja, vale a última contagem daquele mês; uma nova visita parcial não transforma os produtos não conferidos em zero nem reaproveita valores de meses anteriores. As demais lojas aparecem como não conferidas no mês selecionado. As estimativas de saída e reposição continuam comparando a nova contagem com a referência anterior, inclusive quando ela pertence a outro mês.
+
+A opção **Total por mês** soma os resultados mensais e mantém os meses separados, do mais antigo ao mais recente. Uma loja pode entrar na contagem de cada mês em que foi conferida. Esse acumulado representa a soma das contagens mensais, sem indicar o estoque disponível hoje. Excel, CSV e impressão seguem a mesma seleção e separação por mês.
+
 ## O que melhora em relação à rotina com planilhas
 
 | Necessidade da rotina | Como o Estoq organiza o trabalho |
