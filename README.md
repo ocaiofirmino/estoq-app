@@ -16,6 +16,8 @@ Controle de estoque e acompanhamento de visitas às lojas, pensado para uso no c
 
 Projeto de uso exclusivo de **Caio Firmino**.
 
+Aplicação: [estoq-app.vercel.app](https://estoq-app.vercel.app).
+
 ## Funcionalidades
 
 - Cadastro e consulta de lojas e produtos.
