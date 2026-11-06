@@ -25,7 +25,7 @@ export function zeroStockPanel(data,s,storeId=''){
  const summary=selected?`${rows.length} ${rows.length===1?'produto com zero confirmado':'produtos com zero confirmado'}`:`${groups.length} ${groups.length===1?'loja com produtos zerados':'lojas com produtos zerados'}`;
  const controls=`<div class="zero-store-toolbar"><label class="zero-store-field" for="zero-store">Loja<select id="zero-store" aria-describedby="zero-store-status">${s.stores.length!==1?'<option value="">Selecionar loja</option>':''}${[...s.stores].sort((a,b)=>a.id.localeCompare(b.id,'pt-BR',{numeric:true})).map(store=>{
   const count=byStore.get(store.id)?.length||0;
-  return `<option value="${e(store.id)}" ${selected?.id===store.id?'selected':''}>${e(storeLabel(store))}${count?` · ${count} ${count===1?'produto zerado':'produtos zerados'}`:''}</option>`;
+  return `<option value="${e(store.id)}" ${selected?.id===store.id?'selected':''}>${e(storeLabel(store))}${count?` · ${count} ${count===1?'zerado':'zerados'}`:''}</option>`;
  }).join('')}</select></label><p class="zero-store-summary" id="zero-store-status" role="status"><strong>${summary}</strong><span>Considera os filtros de mês e laboratório do painel.</span></p></div>`;
  let content;
  if(!selected)content=empty('Escolha uma loja para ver os produtos.','A lista mostrará somente os produtos com estoque zero confirmado naquela unidade.');

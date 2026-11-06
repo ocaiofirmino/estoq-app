@@ -123,7 +123,7 @@ body.menu-open{overflow:hidden;overscroll-behavior:none}
 .detail-header h2,.count-header>div,.count-product h3{min-width:0;overflow-wrap:anywhere}
 .detail-stock-list>div>span:first-child{min-width:0;overflow-wrap:anywhere}
 .quantity-field{container-type:inline-size;--quantity-font-max:104px}
-.quantity-field input{font-size:clamp(24px,calc(104px - (var(--digits,1) - 1)*16px),104px);letter-spacing:-.035em}
+.quantity-field input{font-size:clamp(16px,calc(104px - (var(--digits,1) - 1)*16px),104px);letter-spacing:-.035em}
 @media(min-width:701px) and (max-height:650px){.sidebar>.brand,.sidebar-bottom{flex-shrink:0}.sidebar nav{min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;scrollbar-width:thin}.sidebar .nav-link{flex-shrink:0}}
 @media(max-width:700px){
  .results-actions,.collection-filters{flex-wrap:wrap}
@@ -132,13 +132,13 @@ body.menu-open{overflow:hidden;overscroll-behavior:none}
  .count-secondary-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
  .count-secondary-actions .button{min-width:0;min-height:44px;padding:10px 8px;white-space:normal;line-height:1.5}
  .quantity-field{--quantity-font-max:100px}
- .quantity-field input{font-size:clamp(24px,calc(100px - (var(--digits,1) - 1)*16px),100px)}
+ .quantity-field input{font-size:clamp(16px,calc(100px - (var(--digits,1) - 1)*16px),100px)}
  .search-box input,.filter-control input,.filter-control select,.collection-filters select,.results-context .filter-control input,.results-context .filter-control select{min-height:44px;height:auto;font-size:16px}
  .filter-control{min-width:0;min-height:44px}
  .topbar .theme-toggle,.view-toggle .icon-button,.count-header .icon-button,.modal-header .icon-button,.menu-sheet .modal-header .icon-button{width:44px;height:44px}
  .count-state-actions .button,.count-review .section-line>.button{min-height:44px}
 }
-@supports(font-size:1cqw){.quantity-field input{font-size:clamp(18px,calc(130cqw / max(1,var(--digits,1))),var(--quantity-font-max))}}
+@supports(font-size:1cqw){.quantity-field input{font-size:clamp(16px,calc(130cqw / max(1,var(--digits,1))),var(--quantity-font-max))}}
 /* Filtros com largura legível para uso em tablet e celular. */
 @media(max-width:1024px){
  .collection-toolbar>.search-box{max-width:none;flex-basis:100%}
@@ -214,3 +214,8 @@ dialog.count-dialog.count-review-dialog{
  .count-review-notes>summary{min-height:36px;padding:7px 0}
  .count-review-shell>.count-review-footer{padding:10px 14px}
 }
+
+/* Espaço para a seta nativa e campos legíveis também em telas compactas. */
+.filter-control select{padding-right:8px}
+@media(max-width:700px){.visit-row>summary{grid-template-columns:minmax(0,1fr) 55px 82px 14px}.history-store{min-width:0;overflow-wrap:anywhere}}
+@media(max-width:360px){.filters,.results-context .filters{grid-template-columns:minmax(0,1fr)}.filters .filter-control:last-child,.results-context .filter-control:last-child{grid-column:auto}}
