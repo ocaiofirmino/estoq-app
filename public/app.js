@@ -14,6 +14,7 @@ const main=document.querySelector('#content'),modal=document.querySelector('#mod
 const pages={overview:'Início',stores:'Lojas',products:'Produtos',laboratories:'Laboratórios',visits:'Visitas',movements:'Movimentações',reports:'Relatórios',compare:'Comparar',settings:'Configurações'};
 const adminOnly=new Set(['settings']);
 const isAdmin=()=>user?.role==='admin';
+const canManageVisits=()=>isAdmin()||user?.role==='promoter';
 let comparison={storeId:'',fromId:'',toId:'',laboratory:'',mode:'day'};
 let catalogView='active';
 let data,revision,mode,updatedAt,user,filters={month:'',storeId:'',laboratory:''},busy=false,draft=null,dirty=false,toastTimer;
@@ -99,7 +100,7 @@ function openVisit(id='',storeId=''){
   expandedVisits:[...modal.querySelectorAll('.visit-row[open]')].map(row=>row.querySelector('[data-action="edit-visit"]')?.dataset.id),
  }:null;
  const visit=existing||{id:'v-'+crypto.randomUUID(),storeId:storeId||filters.storeId||data.stores[0].id,date:today(),notes:'',items:[],source:'manual'};
- countState=newDraft(visit);countReadonly=Boolean(existing)&&!isAdmin();countSaved=false;countSaving=false;dirty=false;
+ countState=newDraft(visit);countReadonly=Boolean(existing)&&!canManageVisits();countSaved=false;countSaving=false;dirty=false;
  if(existing){countState.baseVisit=JSON.stringify(existing);countState.step='review';countState.view='list';}
  persistCount();renderCount();document.querySelector('#modal-content').scrollTop=0;
 }
@@ -142,7 +143,7 @@ async function action(name,el){try{
  if(name==='close-modal')return closeModal();if(name==='help')return openHelp();if(name==='all-period'){filters.month='';return render();}if(name==='compare-visit'){const visit=data.visits.find(v=>v.id===el.dataset.id),previous=data.visits.filter(v=>v.storeId===visit.storeId&&v.date<visit.date).sort((a,b)=>a.date.localeCompare(b.date)).at(-1);comparison={storeId:visit.storeId,fromId:previous?.id||'',toId:visit.id,laboratory:'',mode:previous?'range':'day'};location.hash='compare';return render();}if(name==='print')return window.print();if(name==='export-excel')return exportExcel();if(name==='export-comparison-excel')return exportExcel(true);if(name==='export-csv')return exportCsv();if(name==='export-comparison')return exportComparison();
  if(name==='backup'){download(`Estoq_backup_${today()}.json`,JSON.stringify(data,null,2),'application/json');return toast('Backup exportado. Guarde uma cópia em local seguro.');}
  if(name==='restore')return document.querySelector('#backup-file').click();
- if(name==='delete-visit'){if(!confirm('Excluir esta visita? Os indicadores serão recalculados com os registros restantes.'))return;await command('deleteVisit',{id:el.dataset.id});dirty=false;closeModal();render();toast('Visita excluída; indicadores recalculados.');}
+ if(name==='delete-visit'){if(!canManageVisits())throw new Error('Seu perfil não permite excluir visitas.');if(!confirm('Excluir esta visita? Os indicadores serão recalculados com os registros restantes.'))return;await command('deleteVisit',{id:el.dataset.id});dirty=false;closeModal();render();toast('Visita excluída; indicadores recalculados.');}
 }catch(error){formError(error);}}
 function selectedData(storeId=''){const selected=selectData(data,storeId?{...filters,storeId}:filters);selected.endDate=filters.month?`${filters.month}-31`:'9999-12-31';return selected;}
 function openDrawer(title,content,origin=null){dirty=false;draft=null;drawerOrigin=origin;openModal(`${modalHeader(title)}<div class="drawer-body">${content}</div>`);modal.classList.add('drawer');}
@@ -235,9 +236,9 @@ async function screenAction(name,el){
   if(existing&&state.baseVisit!==JSON.stringify(existing)){toast('A visita foi atualizada. O rascunho foi preservado; revise o registro atual antes de corrigir.',true);openVisit(existing.id);return true;}
   const allowed=new Set(visitProducts(data,existing||null).map(p=>p.id)),unavailable=state.visit.items.filter(i=>!allowed.has(i.productId));
   if(unavailable.length){if(!confirm(`${unavailable.length} produtos deste rascunho não estão mais disponíveis no catálogo. Retomar sem esses itens? As visitas salvas serão preservadas.`))return true;state.visit.items=state.visit.items.filter(i=>allowed.has(i.productId));saveDraft(browserStorage(),user.username,state);}
-  countOrigin=null;countState=structuredClone(state);countReadonly=Boolean(existing)&&!isAdmin();countSaved=false;countSaving=false;dirty=false;renderCount();return true;
+  countOrigin=null;countState=structuredClone(state);countReadonly=Boolean(existing)&&!canManageVisits();countSaved=false;countSaving=false;dirty=false;renderCount();return true;
  }
- if(name==='delete-visit'&&countState){if(!isAdmin())throw new Error('Somente o administrador pode excluir visitas.');if(confirm('Excluir esta visita? As contagens anteriores serão preservadas e os indicadores recalculados.')){await command('deleteVisit',{id:countState.visit.id});clearDraft(browserStorage(),user.username,countState.visit.id);countState=null;dirty=false;modal.close();render();toast('Visita excluída. Indicadores atualizados.');}return true;}
+ if(name==='delete-visit'&&countState){if(!canManageVisits())throw new Error('Seu perfil não permite excluir visitas.');if(confirm('Excluir esta visita? As contagens anteriores serão preservadas e os indicadores recalculados.')){await command('deleteVisit',{id:countState.visit.id});clearDraft(browserStorage(),user.username,countState.visit.id);countState=null;dirty=false;modal.close();render();toast('Visita excluída. Indicadores atualizados.');}return true;}
  if(!name.startsWith('count-')&&name!=='discard-draft')return false;
  if(!countState)return true;
  if(countSaving)return true;

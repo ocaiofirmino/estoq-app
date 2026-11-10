@@ -44,6 +44,85 @@ test('credenciais sintéticas autenticam os dois papéis e os dados exigem sess�
   }finally{c.sqlite.close();}
 });
 
+async function sessionCookie(c,username){
+  const response=await c.call('/api/auth/login',{body:{username,password:testPassword}});
+  assert.equal(response.status,200);
+  return response.headers.get('set-cookie').split(';')[0];
+}
+
+test('Laylah pode criar, corrigir e excluir visitas próprias e do administrador',async()=>{
+  const c=await context();
+  try{
+    const cookies={caio:await sessionCookie(c,'caio'),laylah:await sessionCookie(c,'laylah')};
+    let revision=0;
+    for(const username of ['laylah','caio']){
+      const visit={id:'visit-'+username,storeId:'PF01',date:'2026-11-01',notes:'Contagem inicial',items:[{productId:'p-test',stock:5}]};
+      const created=await c.call('/api/state',{cookie:cookies[username],body:{revision,type:'saveVisit',payload:visit}});
+      assert.equal(created.status,200);
+      const initial=await created.json(),original=initial.data.visits.find(v=>v.id===visit.id);
+      revision=initial.revision;
+      assert.equal(original.createdBy,username);
+      const corrected=await c.call('/api/state',{cookie:cookies.laylah,body:{revision,type:'saveVisit',payload:{...visit,notes:'Corrigida por Laylah',items:[{productId:'p-test',stock:3}],createdBy:'invalid',createdAt:'invalid'}}});
+      assert.equal(corrected.status,200);
+      const updated=await corrected.json(),saved=updated.data.visits.find(v=>v.id===visit.id);
+      revision=updated.revision;
+      assert.equal(saved.items[0].stock,3);
+      assert.equal(saved.notes,'Corrigida por Laylah');
+      assert.equal(saved.createdBy,username);
+      assert.equal(saved.createdAt,original.createdAt);
+      assert.equal(saved.updatedBy,'laylah');
+      assert.equal(updated.data.audit.at(-1).username,'laylah');
+      assert.equal(updated.data.audit.at(-1).type,'saveVisit');
+      const deleted=await c.call('/api/state',{cookie:cookies.laylah,body:{revision,type:'deleteVisit',payload:{id:visit.id}}});
+      assert.equal(deleted.status,200);
+      const final=await deleted.json();revision=final.revision;
+      assert.equal(final.data.visits.length,0);
+      assert.equal(final.data.audit.at(-1).username,'laylah');
+      assert.equal(final.data.audit.at(-1).type,'deleteVisit');
+      assert.equal(final.data.audit.at(-1).entityId,visit.id);
+    }
+  }finally{c.sqlite.close();}
+});
+
+test('as permissões de Laylah continuam limitadas às visitas',async()=>{
+  const c=await context();
+  try{
+    const cookie=await sessionCookie(c,'laylah');
+    const before=await (await c.call('/api/state',{cookie})).json();
+    for(const [type,payload] of [
+      ['saveStore',{...example().stores[0],name:'Nome alterado'}],
+      ['saveProduct',{...example().products[0],active:false}],
+      ['settings',{targetDays:60}],
+      ['restore',{...example(),products:[]}],
+    ]){
+      const response=await c.call('/api/state',{cookie,body:{revision:before.revision,type,payload}});
+      assert.equal(response.status,403,type);
+    }
+    assert.deepEqual(await (await c.call('/api/state',{cookie})).json(),before);
+    const adminCookie=await sessionCookie(c,'caio');
+    const response=await c.call('/api/state',{cookie:adminCookie,body:{revision:before.revision,type:'saveStore',payload:{...example().stores[0],name:'Nome alterado'}}});
+    assert.equal(response.status,200);
+    assert.equal((await response.json()).data.stores[0].name,'Nome alterado');
+  }finally{c.sqlite.close();}
+});
+
+test('correções e exclusões de Laylah exigem sessão e respeitam a revisão atual',async()=>{
+  const c=await context();
+  try{
+    const cookie=await sessionCookie(c,'laylah');
+    const visit={id:'visit-test',storeId:'PF01',date:'2026-11-01',notes:'',items:[{productId:'p-test',stock:5}]};
+    const created=await c.call('/api/state',{cookie,body:{revision:0,type:'saveVisit',payload:visit}});
+    assert.equal(created.status,200);
+    const before=await created.json();
+    for(const type of ['saveVisit','deleteVisit']){
+      const payload=type==='saveVisit'?{...visit,items:[{productId:'p-test',stock:1}]}:{id:visit.id};
+      assert.equal((await c.call('/api/state',{cookie,body:{revision:0,type,payload}})).status,409);
+      assert.equal((await c.call('/api/state',{body:{revision:before.revision,type,payload}})).status,401);
+    }
+    assert.deepEqual(await (await c.call('/api/state',{cookie})).json(),before);
+  }finally{c.sqlite.close();}
+});
+
 test('inicializar novamente preserva o estado já gravado no banco',async()=>{
   const c=await context();
   try{
