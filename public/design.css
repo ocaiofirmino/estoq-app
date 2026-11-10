@@ -219,3 +219,9 @@ dialog.count-dialog.count-review-dialog{
 .filter-control select{padding-right:8px}
 @media(max-width:700px){.visit-row>summary{grid-template-columns:minmax(0,1fr) 55px 82px 14px}.history-store{min-width:0;overflow-wrap:anywhere}}
 @media(max-width:360px){.filters,.results-context .filters{grid-template-columns:minmax(0,1fr)}.filters .filter-control:last-child,.results-context .filter-control:last-child{grid-column:auto}}
+
+/* Ações disponíveis mesmo quando os produtos da visita estão recolhidos. */
+.visit-history-entry{border-bottom:1px solid var(--line)}
+.visit-history-entry>.visit-row{border-bottom:0}
+.visit-entry-actions{display:flex;flex-wrap:wrap;gap:8px;padding:0 5px 14px}
+.visit-entry-actions>.button{min-height:44px}
