@@ -18,7 +18,7 @@ const initial = JSON.parse(await readFile(resolve(root, 'lib/initial-data.json')
 const cloud=Boolean(process.env.DATABASE_URL);
 const db = cloud ? await getCloudDatabase() : sqliteAdapter(sqlite);
 await initializeDatabase(db,initial);
-const types = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8', '.svg':'image/svg+xml', '.png':'image/png', '.webp':'image/webp', '.ico':'image/x-icon', '.json':'application/json' };
+const types = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8', '.svg':'image/svg+xml', '.png':'image/png', '.webp':'image/webp', '.ico':'image/x-icon', '.json':'application/json', '.webmanifest':'application/manifest+json; charset=utf-8' };
 const server = createServer(async (req, res) => {
   try {
     const host = req.headers.host || '127.0.0.1';

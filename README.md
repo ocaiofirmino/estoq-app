@@ -95,6 +95,23 @@ A exportação em Excel mantém a possibilidade de trabalhar e compartilhar info
 
 A interface usa HTML, CSS e JavaScript, sem framework de frontend. Os dados reais da operação permanecem separados do código público.
 
+## Instalar no Android
+
+O Estoq pode ser instalado como um **PWA**, pelo Chrome, em celulares e tablets Android. O aplicativo abre as mesmas páginas do site em uma janela própria, com o mesmo design, estrutura e regras responsivas, em retrato ou paisagem. Cada pessoa continua usando sua conta e a mesma base online.
+
+Depois que esta versão estiver publicada em HTTPS:
+
+1. Abra [estoq-app.vercel.app](https://estoq-app.vercel.app) no Chrome do aparelho.
+2. No menu do Chrome, toque em **Instalar aplicativo** ou **Adicionar à tela inicial → Instalar**, conforme a versão do navegador.
+3. Abra o Estoq pelo ícone criado e entre com sua conta.
+4. Repita no outro celular ou tablet. A instalação não exige publicação na Play Store.
+
+**É necessário estar conectado para abrir os dados e salvar visitas.** Os rascunhos continuam restritos à conta, ao navegador e ao aparelho em que foram preenchidos. Esta versão não oferece gravação offline nem uma fila de sincronização.
+
+Se o aplicativo for aberto sem conexão depois do primeiro acesso online, ele mostra uma página de reconexão. O service worker armazena somente essa página pública; login, sessões, respostas da API e dados das visitas não são guardados nesse cache. As páginas e arquivos do sistema continuam sendo buscados na rede, e uma atualização não força o recarregamento de uma contagem aberta.
+
+O manifesto permite as duas orientações de tela. Os ícones de instalação usam o símbolo atual do Estoq, incluindo uma versão com margem segura para os recortes de ícones do Android. Para desenvolver e conferir a instalação localmente, use `npm run dev` em `localhost` ou `127.0.0.1`; um endereço HTTP na rede local não oferece o contexto seguro necessário à instalação.
+
 ## Escopo atual e evolução futura
 
 **Agora:** consolidar um piloto utilizável para o acompanhamento que motivou o projeto. Isso inclui contagens claras, histórico confiável, consultas e relatórios úteis, preservação dos registros e boa experiência nos dispositivos usados durante as visitas.
