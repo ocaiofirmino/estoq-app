@@ -73,7 +73,14 @@ Em **Relatórios → Excel por PF**, a exportação organiza o histórico por lo
 - A linha seguinte apresenta os produtos em colunas, identificados por nome, código e laboratório.
 - A partir da terceira linha, cada visita tem sua própria data e as quantidades conferidas naquele dia.
 
-Os filtros de mês, loja e laboratório também valem para essa exportação. Para incluir todas as lojas e datas, selecione **Toda a rede** e **Total por mês** antes de usar **Excel por PF**. Neste formato, o arquivo reúne as visitas reais por data, sem somar quantidades entre visitas ou meses.
+Ao tocar em **Excel por PF**, um pop-up permite escolher o período antes de baixar:
+
+- **Todo o histórico — desde o dia zero:** opção inicial, com todas as datas desde a primeira visita registrada.
+- **Dia específico:** somente as visitas do dia escolhido.
+- **Mês:** todas as visitas do mês e ano escolhidos.
+- **Ano:** todas as visitas de janeiro a dezembro do ano escolhido.
+
+O período do pop-up vale para o arquivo, independentemente do mês exibido na tela. Os filtros de loja e laboratório continuam sendo respeitados. Para reunir todas as lojas e datas, selecione **Toda a rede**, abra **Excel por PF**, mantenha **Todo o histórico — desde o dia zero** e toque em **Baixar Excel**. O arquivo reúne as visitas reais por data, sem somar quantidades entre visitas, meses ou anos.
 
 Campos sem contagem ficam em branco e zero continua sendo uma quantidade conferida. Lojas sem visitas no período também aparecem, identificadas como sem visitas. O filtro de laboratório restringe os produtos das colunas e preserva as datas das visitas da loja, mesmo quando nenhum produto daquele laboratório foi conferido. A aba **Contexto** registra os filtros e explica a leitura do arquivo.
 
