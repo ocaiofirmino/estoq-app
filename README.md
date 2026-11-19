@@ -65,6 +65,18 @@ Ao selecionar um mês, o relatório considera somente as contagens realizadas ne
 
 A opção **Total por mês** soma os resultados mensais e mantém os meses separados, do mais antigo ao mais recente. Uma loja pode entrar na contagem de cada mês em que foi conferida. Esse acumulado representa a soma das contagens mensais, sem indicar o estoque disponível hoje. Excel, CSV e impressão seguem a mesma seleção e separação por mês.
 
+### Excel por PF
+
+Em **Relatórios → Excel por PF**, a exportação organiza o histórico por loja, com todas as PFs da seleção em um único arquivo:
+
+- A primeira linha de cada bloco identifica a PF e a loja, ocupando a largura inteira da tabela.
+- A linha seguinte apresenta os produtos em colunas, identificados por nome, código e laboratório.
+- A partir da terceira linha, cada visita tem sua própria data e as quantidades conferidas naquele dia.
+
+Os filtros de mês, loja e laboratório também valem para essa exportação. Para incluir todas as lojas e datas, selecione **Toda a rede** e **Total por mês** antes de usar **Excel por PF**. Neste formato, o arquivo reúne as visitas reais por data, sem somar quantidades entre visitas ou meses.
+
+Campos sem contagem ficam em branco e zero continua sendo uma quantidade conferida. Lojas sem visitas no período também aparecem, identificadas como sem visitas. O filtro de laboratório restringe os produtos das colunas e preserva as datas das visitas da loja, mesmo quando nenhum produto daquele laboratório foi conferido. A aba **Contexto** registra os filtros e explica a leitura do arquivo.
+
 ## O que melhora em relação à rotina com planilhas
 
 | Necessidade da rotina | Como o Estoq organiza o trabalho |
