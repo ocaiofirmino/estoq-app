@@ -7,6 +7,7 @@ import { comparisonPage } from './comparison.js';
 import { reportsPage } from './reports.js';
 import { reportCsvRows } from './report-csv.js';
 import { dashboardSheets, reportSheets, comparisonSheets } from './export-excel.js';
+import { pfReportSheets } from './export-pf.js';
 import { createXlsx, XLSX_MIME } from './xlsx.js';
 
 const labs={Duprat:'#6a9b78',Pearson:'#a3b69a',Provets:'#d4b57c',Syntec:'#a2b8b3'};
@@ -115,6 +116,11 @@ function exportExcel(isComparison=false){
  const filename=isComparison?`Estoq_${comparison.mode==='day'?'Visita':'Comparativo'}_${comparison.storeId}.xlsx`:`Estoq_${currentPage()==='reports'?'Relatorio':'Dashboards'}_${filters.storeId||'rede'}_${filters.month||(currentPage()==='reports'?'total-por-mes':'historico')}.xlsx`;
  download(filename,bytes,XLSX_MIME);toast('Excel exportado com os filtros selecionados.');
 }
+function exportPfExcel(){
+ const bytes=createXlsx(pfReportSheets(data,filters));
+ download(`Estoq_PF_por_produto_${filters.storeId||'todas-as-lojas'}_${filters.month||'historico'}.xlsx`,bytes,XLSX_MIME);
+ toast('Relatório por PF exportado com todas as visitas da seleção.');
+}
 function csvFile(filename,rows){
  const quote=value=>{let text=String(value??'');if(typeof value==='string'&&/^[=+@\-\t\r]/.test(text))text="'"+text;return '"'+text.replace(/"/g,'""')+'"';};
  download(filename,'\ufeff'+rows.map(row=>row.map(quote).join(';')).join('\r\n'),'text/csv;charset=utf-8');toast('Planilha CSV exportada.');
@@ -140,7 +146,7 @@ async function action(name,el){try{
   if(remove&&!confirm(`Remover “${p.name}” do catálogo? Ele deixará de aparecer nas novas contagens. As visitas antigas serão preservadas e você poderá reativá-lo depois.`))return;
   await command('saveProduct',{...p,active:!remove});if(modal.classList.contains('drawer')){modal.close();dirty=false;}render();toast(remove?'Produto removido do catálogo; histórico preservado.':'Produto reativado para novas contagens.');return;
  }
- if(name==='close-modal')return closeModal();if(name==='help')return openHelp();if(name==='all-period'){filters.month='';return render();}if(name==='compare-visit'){const visit=data.visits.find(v=>v.id===el.dataset.id),previous=data.visits.filter(v=>v.storeId===visit.storeId&&v.date<visit.date).sort((a,b)=>a.date.localeCompare(b.date)).at(-1);comparison={storeId:visit.storeId,fromId:previous?.id||'',toId:visit.id,laboratory:'',mode:previous?'range':'day'};location.hash='compare';return render();}if(name==='print')return window.print();if(name==='export-excel')return exportExcel();if(name==='export-comparison-excel')return exportExcel(true);if(name==='export-csv')return exportCsv();if(name==='export-comparison')return exportComparison();
+ if(name==='close-modal')return closeModal();if(name==='help')return openHelp();if(name==='all-period'){filters.month='';return render();}if(name==='compare-visit'){const visit=data.visits.find(v=>v.id===el.dataset.id),previous=data.visits.filter(v=>v.storeId===visit.storeId&&v.date<visit.date).sort((a,b)=>a.date.localeCompare(b.date)).at(-1);comparison={storeId:visit.storeId,fromId:previous?.id||'',toId:visit.id,laboratory:'',mode:previous?'range':'day'};location.hash='compare';return render();}if(name==='print')return window.print();if(name==='export-excel')return exportExcel();if(name==='export-pf-excel')return exportPfExcel();if(name==='export-comparison-excel')return exportExcel(true);if(name==='export-csv')return exportCsv();if(name==='export-comparison')return exportComparison();
  if(name==='backup'){download(`Estoq_backup_${today()}.json`,JSON.stringify(data,null,2),'application/json');return toast('Backup exportado. Guarde uma cópia em local seguro.');}
  if(name==='restore')return document.querySelector('#backup-file').click();
  if(name==='delete-visit'){if(!canManageVisits())throw new Error('Seu perfil não permite excluir visitas.');if(!confirm('Excluir esta visita? Os indicadores serão recalculados com os registros restantes.'))return;await command('deleteVisit',{id:el.dataset.id});dirty=false;closeModal();render();toast('Visita excluída; indicadores recalculados.');}
