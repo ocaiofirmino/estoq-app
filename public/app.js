@@ -8,6 +8,7 @@ import { reportsPage } from './reports.js';
 import { reportCsvRows } from './report-csv.js';
 import { dashboardSheets, reportSheets, comparisonSheets } from './export-excel.js';
 import { pfReportSheets } from './export-pf.js';
+import { reportPeriod } from './report-period.js';
 import { createXlsx, XLSX_MIME } from './xlsx.js';
 
 const labs={Duprat:'#6a9b78',Pearson:'#a3b69a',Provets:'#d4b57c',Syntec:'#a2b8b3'};
@@ -116,10 +117,27 @@ function exportExcel(isComparison=false){
  const filename=isComparison?`Estoq_${comparison.mode==='day'?'Visita':'Comparativo'}_${comparison.storeId}.xlsx`:`Estoq_${currentPage()==='reports'?'Relatorio':'Dashboards'}_${filters.storeId||'rede'}_${filters.month||(currentPage()==='reports'?'total-por-mes':'historico')}.xlsx`;
  download(filename,bytes,XLSX_MIME);toast('Excel exportado com os filtros selecionados.');
 }
+function openPfExport(){
+ const current=today(),scope=filters.storeId?`${filters.storeId} · ${store(filters.storeId)?.name||''}`:'Todas as lojas';
+ dirty=false;draft=null;
+ openModal(`<form id="pf-export-form">${modalHeader('Exportar Excel por PF','Escolha o período das visitas.')}<div class="modal-body"><div class="form-grid"><div class="form-field span-all"><label for="pf-export-type">Período do relatório</label><select id="pf-export-type"><option value="all">Todo o histórico — desde o dia zero</option><option value="day">Dia específico</option><option value="month">Mês</option><option value="year">Ano</option></select></div><div class="span-all" data-pf-export-field="day" hidden><div class="form-field"><label for="pf-export-day">Dia da visita</label><input id="pf-export-day" type="date" min="0001-01-01" max="9999-12-31" value="${current}" disabled></div></div><div class="span-all" data-pf-export-field="month" hidden><div class="form-field"><label for="pf-export-month">Mês das visitas</label><input id="pf-export-month" type="month" min="0001-01" max="9999-12" value="${filters.month||current.slice(0,7)}" disabled></div></div><div class="span-all" data-pf-export-field="year" hidden><div class="form-field"><label for="pf-export-year">Ano das visitas</label><input id="pf-export-year" type="number" inputmode="numeric" min="1" max="9999" step="1" value="${current.slice(0,4)}" disabled></div></div></div><p class="report-text" id="pf-export-description"></p><p class="readonly-note">Lojas: <strong>${e(scope)}</strong><br>Laboratório: <strong>${e(filters.laboratory||'Todos os laboratórios')}</strong></p><p class="readonly-note">O período escolhido aqui vale para o arquivo. As lojas e os laboratórios seguem os filtros da tela.</p>${errorSlot}</div><div class="modal-footer">${button('Cancelar','close-modal','ghost','close')}<button class="button primary" type="submit" data-submit>${icon('down')}<span>Baixar Excel</span></button></div></form>`,true);
+ updatePfExportFields();document.querySelector('#pf-export-type').focus({preventScroll:true});
+}
+function updatePfExportFields(){
+ const type=document.querySelector('#pf-export-type').value;
+ for(const field of modal.querySelectorAll('[data-pf-export-field]')){
+  const active=field.dataset.pfExportField===type;field.hidden=!active;
+  const input=field.querySelector('input');input.disabled=!active;input.required=active;
+ }
+ document.querySelector('#pf-export-description').textContent=({all:'Inclui todas as visitas registradas, desde a primeira contagem (dia zero).',day:'Inclui as visitas realizadas no dia escolhido.',month:'Inclui todas as visitas do mês e ano escolhidos.',year:'Inclui todas as visitas de janeiro a dezembro do ano escolhido.'})[type];
+ document.querySelector('#form-error')?.classList.remove('visible');
+}
 function exportPfExcel(){
- const bytes=createXlsx(pfReportSheets(data,filters));
- download(`Estoq_PF_por_produto_${filters.storeId||'todas-as-lojas'}_${filters.month||'historico'}.xlsx`,bytes,XLSX_MIME);
- toast('Relatório por PF exportado com todas as visitas da seleção.');
+ const value=id=>document.querySelector('#pf-export-'+id).value;
+ const selection={type:value('type'),day:value('day'),month:value('month'),year:value('year')};
+ const period=reportPeriod(selection),bytes=createXlsx(pfReportSheets(data,{...filters,period:selection}));
+ download(`Estoq_PF_por_produto_${filters.storeId||'todas-as-lojas'}_${period.filename}.xlsx`,bytes,XLSX_MIME);
+ dirty=false;closeModal();toast('Excel por PF exportado: '+period.label+'.');
 }
 function csvFile(filename,rows){
  const quote=value=>{let text=String(value??'');if(typeof value==='string'&&/^[=+@\-\t\r]/.test(text))text="'"+text;return '"'+text.replace(/"/g,'""')+'"';};
@@ -146,7 +164,7 @@ async function action(name,el){try{
   if(remove&&!confirm(`Remover “${p.name}” do catálogo? Ele deixará de aparecer nas novas contagens. As visitas antigas serão preservadas e você poderá reativá-lo depois.`))return;
   await command('saveProduct',{...p,active:!remove});if(modal.classList.contains('drawer')){modal.close();dirty=false;}render();toast(remove?'Produto removido do catálogo; histórico preservado.':'Produto reativado para novas contagens.');return;
  }
- if(name==='close-modal')return closeModal();if(name==='help')return openHelp();if(name==='all-period'){filters.month='';return render();}if(name==='compare-visit'){const visit=data.visits.find(v=>v.id===el.dataset.id),previous=data.visits.filter(v=>v.storeId===visit.storeId&&v.date<visit.date).sort((a,b)=>a.date.localeCompare(b.date)).at(-1);comparison={storeId:visit.storeId,fromId:previous?.id||'',toId:visit.id,laboratory:'',mode:previous?'range':'day'};location.hash='compare';return render();}if(name==='print')return window.print();if(name==='export-excel')return exportExcel();if(name==='export-pf-excel')return exportPfExcel();if(name==='export-comparison-excel')return exportExcel(true);if(name==='export-csv')return exportCsv();if(name==='export-comparison')return exportComparison();
+ if(name==='close-modal')return closeModal();if(name==='help')return openHelp();if(name==='all-period'){filters.month='';return render();}if(name==='compare-visit'){const visit=data.visits.find(v=>v.id===el.dataset.id),previous=data.visits.filter(v=>v.storeId===visit.storeId&&v.date<visit.date).sort((a,b)=>a.date.localeCompare(b.date)).at(-1);comparison={storeId:visit.storeId,fromId:previous?.id||'',toId:visit.id,laboratory:'',mode:previous?'range':'day'};location.hash='compare';return render();}if(name==='print')return window.print();if(name==='export-excel')return exportExcel();if(name==='export-pf-excel')return openPfExport();if(name==='export-comparison-excel')return exportExcel(true);if(name==='export-csv')return exportCsv();if(name==='export-comparison')return exportComparison();
  if(name==='backup'){download(`Estoq_backup_${today()}.json`,JSON.stringify(data,null,2),'application/json');return toast('Backup exportado. Guarde uma cópia em local seguro.');}
  if(name==='restore')return document.querySelector('#backup-file').click();
  if(name==='delete-visit'){if(!canManageVisits())throw new Error('Seu perfil não permite excluir visitas.');if(!confirm('Excluir esta visita? Os indicadores serão recalculados com os registros restantes.'))return;await command('deleteVisit',{id:el.dataset.id});dirty=false;closeModal();render();toast('Visita excluída; indicadores recalculados.');}
@@ -306,9 +324,10 @@ window.addEventListener('hashchange',()=>{render();window.scrollTo({top:0});});
 window.addEventListener('beforeunload',event=>{persistCount();if(dirty){event.preventDefault();event.returnValue='';}});
 modal.addEventListener('cancel',event=>{event.preventDefault();closeModal();});
 modal.addEventListener('click',event=>{if(event.target===modal){const r=modal.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)closeModal();}});
-document.addEventListener('input',event=>{const el=event.target;if(handleScreenInput(el))return;if(el.dataset.searchKind){searches[el.dataset.searchKind]=el.value;applySearch();}if(modal.contains(el)){dirty=true;}});
+document.addEventListener('input',event=>{const el=event.target;if(handleScreenInput(el))return;if(el.dataset.searchKind){searches[el.dataset.searchKind]=el.value;applySearch();}if(modal.contains(el)&&!el.closest('#pf-export-form')){dirty=true;}});
 document.addEventListener('change',async event=>{const el=event.target;
  if(handleScreenChange(el))return;
+ if(el.id==='pf-export-type'){updatePfExportFields();return;}
  if(el.id.startsWith('compare-')){comparison[{'compare-store':'storeId','compare-from':'fromId','compare-to':'toId','compare-lab':'laboratory','compare-mode':'mode'}[el.id]]=el.value;if(el.id==='compare-store'){comparison.fromId='';comparison.toId='';}render();}
  if(el.id==='catalog-view'){catalogView=el.value;viewState.productPage=1;render();}
  if(el.id.startsWith('filter-')){viewState.productPage=1;if(el.id==='filter-store')viewState.zeroStoreId=el.value;filters[{'filter-month':'month','filter-store':'storeId','filter-lab':'laboratory'}[el.id]]=el.value;render();}
@@ -317,7 +336,8 @@ document.addEventListener('change',async event=>{const el=event.target;
  if(el.id==='backup-file'&&el.files[0]){try{if(el.files[0].size>1800000)throw new Error('Backup acima do limite de 1,8 MB.');const backup=JSON.parse(await el.files[0].text());validateState(backup);if(!confirm(`Restaurar ${backup.visits.length} visitas e substituir a base atual? Exporte um backup antes de continuar.`))return;await command('restore',backup);render();toast('Backup restaurado.');}catch(error){toast(error.message,true);}finally{el.value='';}}
 });
 document.addEventListener('submit',async event=>{event.preventDefault();const form=event.target;try{
- if(form.id==='store-form'){const value=id=>document.querySelector('#'+id).value;const code=value('store-code').trim();if(code!==draft.id&&data.stores.some(s=>s.id===code))throw new Error('Já existe uma loja com esse código. Abra o cadastro existente para editar.');await command('saveStore',{...draft,id:code,name:value('store-name').trim(),city:value('store-city').trim(),buyer:value('store-buyer').trim(),notes:value('store-notes'),official:true});dirty=false;closeModal();render();toast('Loja salva.');}
+ if(form.id==='pf-export-form'){exportPfExcel();}
+ else if(form.id==='store-form'){const value=id=>document.querySelector('#'+id).value;const code=value('store-code').trim();if(code!==draft.id&&data.stores.some(s=>s.id===code))throw new Error('Já existe uma loja com esse código. Abra o cadastro existente para editar.');await command('saveStore',{...draft,id:code,name:value('store-name').trim(),city:value('store-city').trim(),buyer:value('store-buyer').trim(),notes:value('store-notes'),official:true});dirty=false;closeModal();render();toast('Loja salva.');}
  else if(form.id==='product-form'){const value=id=>document.querySelector('#'+id).value.trim();await command('saveProduct',{...draft,name:value('product-name'),code:value('product-code'),laboratory:value('product-lab'),category:value('product-category'),unit:value('product-unit')});dirty=false;closeModal();render();toast('Produto salvo.');}
  else if(form.id==='settings-form'){await command('settings',{targetDays:Number(document.querySelector('#target-days').value)});render();toast('Meta de cobertura atualizada.');}
  }catch(error){formError(error);}
