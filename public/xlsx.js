@@ -6,21 +6,22 @@ const declaration='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
 const escape=value=>String(value).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]/g,'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
 
 function columnName(index){let name='';for(let n=index+1;n>0;n=Math.floor((n-1)/26))name=String.fromCharCode(65+(n-1)%26)+name;return name;}
-function cell(value,row,col,highlight=false){
+function cell(value,row,col,highlight=false,compact=false,wrap=false){
   const reference=columnName(col)+(row+1);
-  if(value===null||value===undefined||value==='')return highlight?`<c r="${reference}" s="1"/>`:'';
+  const normalStyle=compact?4:0,headerStyle=compact?5:1;
+  if(value===null||value===undefined||value==='')return highlight||compact?`<c r="${reference}" s="${highlight?headerStyle:normalStyle}"/>`:'';
   if(value instanceof Date){
     if(!Number.isFinite(value.getTime()))throw new Error('Data inválida na exportação.');
-    return `<c r="${reference}" s="2"><v>${value.getTime()/86400000+25569}</v></c>`;
+    return `<c r="${reference}" s="${compact?6:2}"><v>${value.getTime()/86400000+25569}</v></c>`;
   }
   if(typeof value==='number'){
     if(!Number.isFinite(value))throw new Error('Quantidade inválida na exportação.');
-    return `<c r="${reference}" s="${highlight?1:Number.isInteger(value)?0:3}"><v>${value}</v></c>`;
+    return `<c r="${reference}" s="${highlight?headerStyle:Number.isInteger(value)?normalStyle:compact?7:3}"><v>${value}</v></c>`;
   }
-  if(typeof value==='boolean')return `<c r="${reference}" t="b"><v>${value?1:0}</v></c>`;
+  if(typeof value==='boolean')return `<c r="${reference}"${compact?' s="4"':''} t="b"><v>${value?1:0}</v></c>`;
   if(String(value).length>32767)throw new Error('Um texto ultrapassa o limite de uma célula do Excel.');
   // Strings são sempre texto, inclusive conteúdos iniciados por =, +, - ou @.
-  return `<c r="${reference}" s="${highlight?1:0}" t="inlineStr"><is><t xml:space="preserve">${escape(value)}</t></is></c>`;
+  return `<c r="${reference}" s="${highlight?headerStyle:compact&&wrap?8:normalStyle}" t="inlineStr"><is><t xml:space="preserve">${escape(value)}</t></is></c>`;
 }
 function worksheet(sheet){
   const rows=sheet.rows;
@@ -29,6 +30,7 @@ function worksheet(sheet){
   if(rows.length>1048576||cols>16384)throw new Error('A exportação ultrapassa o limite de linhas ou colunas do Excel.');
   const range=`A1:${columnName(cols-1)}${rows.length}`;
   const headers=new Set(sheet.headerRows??[0]),sections=new Set(sheet.sectionRows??[]);
+  const wrapped=new Set(sheet.wrapRows??[]),compact=sheet.compact===true;
   const freezeRows=sheet.freezeRows??1;
   if(!Number.isInteger(freezeRows)||freezeRows<0||freezeRows>rows.length)throw new Error('Congelamento de linhas inválido.');
   for(const row of [...headers,...sections])if(!Number.isInteger(row)||row<0||row>=rows.length)throw new Error('Cabeçalho de planilha inválido.');
@@ -38,17 +40,17 @@ function worksheet(sheet){
   }).join('');
   const body=rows.map((values,r)=>{
     const section=sections.has(r),header=headers.has(r),highlight=section||header;
-    const cells=section?Array.from({length:cols},(_,c)=>values[c]??null):values;
-    const height=section?30:header?(sheet.headerHeight??30):null;
-    return `<row r="${r+1}"${height?` ht="${height}" customHeight="1"`:''}>${cells.map((v,c)=>cell(v,r,c,highlight)).join('')}</row>`;
+    const cells=section||compact?Array.from({length:cols},(_,c)=>values[c]??null):values;
+    const height=sheet.rowHeights?.[r]??(section?30:header?(sheet.headerHeight??30):null);
+    return `<row r="${r+1}"${height?` ht="${height}" customHeight="1"`:''}>${cells.map((v,c)=>cell(v,r,c,highlight,compact,wrapped.has(r))).join('')}</row>`;
   }).join('');
   const pane=freezeRows?`<pane ySplit="${freezeRows}" topLeftCell="A${freezeRows+1}" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A${freezeRows+1}" sqref="A${freezeRows+1}"/>`:'';
   const merged=cols>1?[...sections].sort((a,b)=>a-b).map(row=>`<mergeCell ref="A${row+1}:${columnName(cols-1)}${row+1}"/>`):[];
   const mergeCells=merged.length?`<mergeCells count="${merged.length}">${merged.join('')}</mergeCells>`:'';
-  return declaration+`<worksheet xmlns="${spreadsheetNS}"><dimension ref="${range}"/><sheetViews><sheetView workbookViewId="0">${pane}</sheetView></sheetViews><sheetFormatPr defaultRowHeight="18"/><cols>${widths}</cols><sheetData>${body}</sheetData>${sheet.autoFilter===false?'':`<autoFilter ref="${range}"/>`}${mergeCells}</worksheet>`;
+  return declaration+`<worksheet xmlns="${spreadsheetNS}"><dimension ref="${range}"/><sheetViews><sheetView workbookViewId="0">${pane}</sheetView></sheetViews><sheetFormatPr defaultRowHeight="${compact?15:18}"/><cols>${widths}</cols><sheetData>${body}</sheetData>${sheet.autoFilter===false?'':`<autoFilter ref="${range}"/>`}${mergeCells}</worksheet>`;
 }
 
-const styles=declaration+`<styleSheet xmlns="${spreadsheetNS}"><numFmts count="2"><numFmt numFmtId="164" formatCode="dd/mm/yyyy"/><numFmt numFmtId="165" formatCode="0.00"/></numFmts><fonts count="2"><font><sz val="11"/><color rgb="FF283D35"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/><family val="2"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF327361"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="4"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+const styles=declaration+`<styleSheet xmlns="${spreadsheetNS}"><numFmts count="2"><numFmt numFmtId="164" formatCode="dd/mm/yyyy"/><numFmt numFmtId="165" formatCode="0.00"/></numFmts><fonts count="3"><font><sz val="11"/><color rgb="FF283D35"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/><family val="2"/></font><font><sz val="11"/><color rgb="FF000000"/><name val="Calibri"/><family val="2"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF327361"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FF000000"/></left><right style="thin"><color rgb="FF000000"/></right><top style="thin"><color rgb="FF000000"/></top><bottom style="thin"><color rgb="FF000000"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="9"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="2" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="center"/></xf><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf><xf numFmtId="164" fontId="2" fillId="0" borderId="1" xfId="0" applyBorder="1" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf><xf numFmtId="165" fontId="2" fillId="0" borderId="1" xfId="0" applyBorder="1" applyNumberFormat="1" applyAlignment="1"><alignment vertical="center"/></xf><xf numFmtId="0" fontId="2" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
 
 const crcTable=Uint32Array.from({length:256},(_,i)=>{let n=i;for(let bit=0;bit<8;bit++)n=(n&1)?0xedb88320^(n>>>1):n>>>1;return n>>>0;});
 function crc32(bytes){let crc=0xffffffff;for(const b of bytes)crc=crcTable[(crc^b)&255]^(crc>>>8);return (crc^0xffffffff)>>>0;}
