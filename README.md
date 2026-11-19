@@ -73,6 +73,8 @@ Em **Relatórios → Excel por PF**, a exportação organiza o histórico por lo
 - A linha seguinte apresenta os produtos em colunas, identificados por nome, código e laboratório.
 - A partir da terceira linha, cada visita tem sua própria data e as quantidades conferidas naquele dia.
 
+A tabela usa o formato compacto: colunas de produtos mais estreitas, cabeçalhos verdes com texto branco e quebra de linha, grade com bordas pretas e linhas de quantidades com altura de 15 pontos. As linhas de loja mantêm o título ocupando toda a largura. Mensagens de ausência de visitas recebem quebra de linha e altura suficiente para continuarem legíveis.
+
 Ao tocar em **Excel por PF**, um pop-up permite escolher o período antes de baixar:
 
 - **Todo o histórico — desde o dia zero:** opção inicial, com todas as datas desde a primeira visita registrada.

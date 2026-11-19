@@ -74,10 +74,10 @@ test('os cabeçalhos de PF ocupam a linha inteira no XLSX, com datas e quantidad
   const sheets=pfReportSheets(example(),{month:'2026-11',storeId:'PF01'});
   const [xml]=xmls(sheets);
   assert.match(xml,/<mergeCell ref="A1:D1"\/>/);
-  assert.match(xml,/<c r="D1" s="1"\/>/);
-  assert.match(xml,/<c r="A3" s="2"><v>\d+<\/v><\/c>/);
-  assert.match(xml,/<c r="B5" s="0"><v>0<\/v><\/c>/);
-  assert(!xml.includes('r="C5"'));
+  assert.match(xml,/<c r="D1" s="5"\/>/);
+  assert.match(xml,/<c r="A3" s="6"><v>\d+<\/v><\/c>/);
+  assert.match(xml,/<c r="B5" s="4"><v>0<\/v><\/c>/);
+  assert.match(xml,/<c r="C5" s="4"\/>/);
   assert(!xml.includes('<autoFilter'));
   assert(!xml.includes('<pane'));
   assert.equal(sheets[1].name,'Contexto');
